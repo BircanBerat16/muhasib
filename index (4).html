@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>muhasib · محاسب النفس</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #111; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 100vh; padding: 24px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .phone-wrap { background: #1a1a1a; border-radius: 44px; padding: 10px; border: 1px solid #333; width: 320px; box-shadow: 0 32px 80px rgba(0,0,0,0.5); }
+    .notch { width: 90px; height: 26px; background: #1a1a1a; border-radius: 0 0 18px 18px; margin: 0 auto 2px; }
+    .screen { background: #FAFAF8; border-radius: 36px; overflow: hidden; min-height: 620px; position: relative; display: flex; flex-direction: column; }
+    .page { display: none; flex-direction: column; min-height: 620px; }
+    .page.active { display: flex; }
+    .status { display: flex; justify-content: space-between; padding: 10px 20px 6px; font-size: 11px; color: #888; font-weight: 500; }
+    .slide-label { color: #555; font-size: 12px; margin-top: 12px; text-align: center; letter-spacing: 0.3px; }
+
+    /* SPLASH */
+    .splash { background: #0F6E56; min-height: 620px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+    .splash-name { font-size: 30px; font-weight: 500; color: white; letter-spacing: -1px; }
+    .splash-ar { font-size: 14px; color: rgba(255,255,255,0.55); letter-spacing: 0.5px; }
+    .splash-btn { margin-top: 28px; background: white; color: #0F6E56; border: none; border-radius: 14px; padding: 13px 44px; font-size: 15px; font-weight: 500; cursor: pointer; }
+
+    /* PROGRESS */
+    .prog-wrap { padding: 4px 18px 14px; }
+    .prog-meta { display: flex; justify-content: space-between; margin-bottom: 6px; }
+    .prog-meta span { font-size: 12px; color: #888; }
+    .prog-meta strong { font-size: 12px; color: #1a1a1a; font-weight: 500; }
+    .prog-track { height: 4px; background: #EBEBEB; border-radius: 2px; overflow: hidden; }
+    .prog-fill { height: 4px; border-radius: 2px; background: #1D9E75; transition: width 0.3s; }
+
+    /* OPT */
+    .opts { display: flex; flex-direction: column; gap: 8px; }
+    .opt { border: 0.5px solid #E0E0E0; border-radius: 12px; padding: 11px 13px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: all 0.15s; background: white; }
+    .opt.sel { border: 1.5px solid #1D9E75; background: #E1F5EE; }
+    .opt-t { font-size: 12px; color: #444; flex: 1; line-height: 1.4; text-align: left; }
+    .opt.sel .opt-t { color: #085041; }
+    .opt-r { width: 17px; height: 17px; border-radius: 50%; border: 1.5px solid #DDD; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-left: 8px; }
+    .opt.sel .opt-r { background: #1D9E75; border-color: #1D9E75; }
+
+    /* BUTTONS */
+    .nav-bar { padding: 10px 18px 16px; display: flex; gap: 8px; }
+    .btn-back { width: 40px; height: 40px; border-radius: 10px; border: 0.5px solid #E0E0E0; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .btn-next { flex: 1; height: 40px; border-radius: 10px; border: none; background: #1D9E75; color: white; font-size: 14px; font-weight: 500; cursor: pointer; }
+    .btn-next:disabled { background: #EEE; color: #AAA; cursor: default; }
+    .btn-full { width: 100%; height: 44px; border-radius: 12px; border: none; background: #1D9E75; color: white; font-size: 14px; font-weight: 500; cursor: pointer; }
+    .btn-sec { width: 100%; height: 38px; border-radius: 10px; border: 0.5px solid #E0E0E0; background: transparent; color: #888; font-size: 13px; cursor: pointer; margin-top: 7px; }
+
+    /* BAR */
+    .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .bar-name { font-size: 11px; color: #444; width: 58px; flex-shrink: 0; }
+    .bar-track { flex: 1; height: 7px; background: #EBEBEB; border-radius: 4px; overflow: hidden; }
+    .bar-fill-r { height: 100%; border-radius: 4px; }
+    .bar-val { font-size: 11px; font-weight: 500; width: 24px; text-align: right; flex-shrink: 0; }
+
+    /* BOTTOM NAV */
+    .bottom-nav { display: flex; justify-content: space-around; align-items: center; padding: 8px 18px 14px; border-top: 0.5px solid #EBEBEB; margin-top: auto; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; opacity: 0.35; cursor: pointer; }
+    .nav-item.active { opacity: 1; }
+    .nav-lbl { font-size: 10px; color: #888; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: #1D9E75; }
+  </style>
+</head>
+<body>
+
+<div class="phone-wrap">
+  <div class="notch"></div>
+  <div class="screen">
+
+    <!-- SPLASH -->
+    <div class="page active" id="p-splash">
+      <div class="splash">
+        <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+          <rect width="72" height="72" rx="20" fill="rgba(255,255,255,0.12)"/>
+          <path d="M18 50 C18 50 18 30 36 30 C54 30 54 50 54 50" stroke="white" stroke-width="5" stroke-linecap="round" fill="none"/>
+          <line x1="36" y1="50" x2="36" y2="60" stroke="white" stroke-width="5" stroke-linecap="round"/>
+          <circle cx="36" cy="23" r="5" fill="white"/>
+        </svg>
+        <div class="splash-name">muhasib</div>
+        <div class="splash-ar">محاسب النفس</div>
+        <button class="splash-btn" onclick="go('p-test')">Başla →</button>
+      </div>
+    </div>
+
+    <!-- KALP TESTİ -->
+    <div class="page" id="p-test">
+      <div class="status"><span>09:41</span><span>●●●</span></div>
+      <div class="prog-wrap">
+        <div class="prog-meta"><span id="cat-lbl">Kibir</span><strong id="step-lbl">1 / 4</strong></div>
+        <div class="prog-track"><div class="prog-fill" id="prog" style="width:25%"></div></div>
+      </div>
+      <div style="flex:1;padding:0 18px 12px;">
+        <span id="q-badge" style="display:inline-block;font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;margin-bottom:10px;background:#E1F5EE;color:#085041;">Kibir · Gurur</span>
+        <p id="q-text" style="font-size:16px;font-weight:500;color:#1a1a1a;line-height:1.45;margin-bottom:5px;"></p>
+        <p id="q-sub" style="font-size:12px;color:#888;line-height:1.5;margin-bottom:18px;"></p>
+        <div class="opts" id="opts-wrap"></div>
+      </div>
+      <div class="nav-bar">
+        <button class="btn-back" onclick="prevQ()">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7l4-4" stroke="#888" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="btn-next" id="btn-next" disabled onclick="nextQ()">Devam et</button>
+      </div>
+    </div>
+
+    <!-- SONUÇ -->
+    <div class="page" id="p-result">
+      <div class="status"><span>09:41</span><span>●●●</span></div>
+      <div style="padding:12px 18px 10px;text-align:center;border-bottom:0.5px solid #EBEBEB;">
+        <svg width="100" height="100" viewBox="0 0 120 120" style="display:block;margin:0 auto 10px;">
+          <circle cx="60" cy="60" r="50" fill="none" stroke="#EBEBEB" stroke-width="10"/>
+          <circle cx="60" cy="60" r="50" fill="none" stroke="#1D9E75" stroke-width="10" stroke-dasharray="314" stroke-dashoffset="110" stroke-linecap="round" transform="rotate(-90 60 60)"/>
+          <text x="60" y="55" text-anchor="middle" font-size="22" font-weight="500" fill="#1a1a1a">65</text>
+          <text x="60" y="72" text-anchor="middle" font-size="11" fill="#888">/ 100</text>
+          <text x="60" y="87" text-anchor="middle" font-size="10" fill="#1D9E75">İyi başlangıç</text>
+        </svg>
+        <p style="font-size:16px;font-weight:500;color:#1a1a1a;margin-bottom:3px;">Kalp haritanız hazır</p>
+        <p style="font-size:12px;color:#888;line-height:1.5;">Bu sonuçlar bir başlangıç — her hafta güncellenir.</p>
+      </div>
+      <div style="padding:12px 0 6px;">
+        <div style="padding:0 18px;">
+          <div class="bar-row"><span class="bar-name">Şükür</span><div class="bar-track"><div class="bar-fill-r" style="width:82%;background:#1D9E75;"></div></div><span class="bar-val" style="color:#1D9E75;">82</span></div>
+          <div class="bar-row"><span class="bar-name">Sabır</span><div class="bar-track"><div class="bar-fill-r" style="width:71%;background:#5DCAA5;"></div></div><span class="bar-val" style="color:#5DCAA5;">71</span></div>
+          <div class="bar-row"><span class="bar-name">Öfke</span><div class="bar-track"><div class="bar-fill-r" style="width:60%;background:#EF9F27;"></div></div><span class="bar-val" style="color:#BA7517;">60</span></div>
+          <div class="bar-row"><span class="bar-name">Kibir</span><div class="bar-track"><div class="bar-fill-r" style="width:48%;background:#F0997B;"></div></div><span class="bar-val" style="color:#993C1D;">48</span></div>
+          <div class="bar-row"><span class="bar-name">Gıybet</span><div class="bar-track"><div class="bar-fill-r" style="width:38%;background:#E24B4A;"></div></div><span class="bar-val" style="color:#A32D2D;">38</span></div>
+        </div>
+        <div style="margin:8px 18px 0;background:#FAECE7;border:0.5px solid #F5C4B3;border-radius:12px;padding:11px 13px;">
+          <p style="font-size:11px;font-weight:500;color:#993C1D;margin-bottom:3px;">En kritik alan</p>
+          <p style="font-size:13px;font-weight:500;color:#712B13;margin-bottom:3px;">Gıybet · Lisan</p>
+          <p style="font-size:11px;color:#993C1D;line-height:1.5;">Lisan, en hızlı ilerlenebilen alandır. Buradan başla.</p>
+        </div>
+      </div>
+      <div style="padding:10px 18px 16px;">
+        <button class="btn-full" onclick="go('p-hedef')">İlk hedefe başla →</button>
+      </div>
+    </div>
+
+    <!-- HEDEF SEÇİM -->
+    <div class="page" id="p-hedef">
+      <div class="status"><span>09:41</span><span>●●●</span></div>
+      <div style="padding:8px 18px 14px;">
+        <p style="font-size:11px;color:#888;margin-bottom:2px;">Adım 3 / 4</p>
+        <p style="font-size:20px;font-weight:500;color:#1a1a1a;letter-spacing:-0.5px;">İlk hedefinizi seçin</p>
+        <p style="font-size:13px;color:#888;margin-top:2px;">40 gün boyunca tek bir alışkanlık.</p>
+      </div>
+      <div style="padding:0 18px;display:flex;flex-direction:column;gap:8px;flex:1;">
+        <div class="opt" id="h1" onclick="selH('h1')" style="padding:13px;align-items:flex-start;">
+          <div style="flex:1;">
+            <p style="font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:2px;">Gıybetten kaçın <span style="font-size:11px;color:#1D9E75;font-weight:400;">· önerilen</span></p>
+            <p style="font-size:11px;color:#888;line-height:1.4;">Birinin yokluğunda onu olumsuz konuşmaktan kaçın.</p>
+          </div>
+          <div class="opt-r"></div>
+        </div>
+        <div class="opt" id="h2" onclick="selH('h2')" style="padding:13px;align-items:flex-start;">
+          <div style="flex:1;">
+            <p style="font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:2px;">Sabah zikri</p>
+            <p style="font-size:11px;color:#888;line-height:1.4;">Her sabah 5 dakika zikir ve dua ile başla.</p>
+          </div>
+          <div class="opt-r"></div>
+        </div>
+        <div class="opt" id="h3" onclick="selH('h3')" style="padding:13px;align-items:flex-start;">
+          <div style="flex:1;">
+            <p style="font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:2px;">Gece şükür günlüğü</p>
+            <p style="font-size:11px;color:#888;line-height:1.4;">Her gece yatmadan önce 3 nimet yaz veya düşün.</p>
+          </div>
+          <div class="opt-r"></div>
+        </div>
+        <div class="opt" id="h4" onclick="selH('h4')" style="padding:13px;align-items:flex-start;">
+          <div style="flex:1;">
+            <p style="font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:2px;">Öfkede sus</p>
+            <p style="font-size:11px;color:#888;line-height:1.4;">Sinirlendiğinde konuşmayı durdur, üç nefes al.</p>
+          </div>
+          <div class="opt-r"></div>
+        </div>
+      </div>
+      <div style="padding:14px 18px 18px;">
+        <button class="btn-full" id="btn-hedef" disabled onclick="go('p-ana')">40 günü başlat →</button>
+      </div>
+    </div>
+
+    <!-- ANA EKRAN -->
+    <div class="page" id="p-ana">
+      <div class="status"><span>09:41</span><span>●●●</span></div>
+      <div style="padding:6px 18px 12px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <p style="font-size:12px;color:#888;margin-bottom:2px;">Sabah namazı kılındı ✓</p>
+          <p style="font-size:20px;font-weight:500;color:#1a1a1a;">Merhaba 👋</p>
+        </div>
+        <div style="width:38px;height:38px;border-radius:50%;background:#E1F5EE;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:#085041;border:0.5px solid #9FE1CB;">YK</div>
+      </div>
+
+      <div style="margin:0 18px 10px;border:0.5px solid #E0E0E0;border-radius:16px;padding:13px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span style="font-size:13px;font-weight:500;color:#1a1a1a;">Kalp haritası</span>
+          <span style="font-size:11px;background:#E1F5EE;color:#085041;padding:3px 9px;border-radius:10px;font-weight:500;">65 · İyi başlangıç</span>
+        </div>
+        <div class="bar-row"><span class="bar-name">Şükür</span><div class="bar-track"><div class="bar-fill-r" style="width:82%;background:#1D9E75;"></div></div><span class="bar-val" style="color:#1D9E75;">82</span></div>
+        <div class="bar-row"><span class="bar-name">Sabır</span><div class="bar-track"><div class="bar-fill-r" style="width:71%;background:#5DCAA5;"></div></div><span class="bar-val" style="color:#5DCAA5;">71</span></div>
+        <div class="bar-row" style="margin-bottom:0;"><span class="bar-name">Gıybet</span><div class="bar-track"><div class="bar-fill-r" style="width:38%;background:#E24B4A;"></div></div><span class="bar-val" style="color:#A32D2D;">38</span></div>
+      </div>
+
+      <div style="margin:0 18px 10px;border:0.5px solid #E0E0E0;border-radius:14px;padding:12px 13px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:7px;">
+          <span style="font-size:13px;font-weight:500;color:#1a1a1a;">Gıybetten kaçın</span>
+          <span style="font-size:11px;color:#888;">8. gün · 32 kaldı</span>
+        </div>
+        <div style="height:5px;background:#EBEBEB;border-radius:3px;overflow:hidden;margin-bottom:6px;"><div style="width:20%;height:100%;background:#1D9E75;border-radius:3px;"></div></div>
+        <div style="display:flex;gap:3px;flex-wrap:wrap;" id="ana-dots"></div>
+      </div>
+
+      <div style="margin:0 18px 10px;background:#E1F5EE;border:1.5px solid #1D9E75;border-radius:14px;padding:12px 13px;" id="checkin-card">
+        <p style="font-size:11px;font-weight:500;color:#1D9E75;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;">Bugünkü check-in</p>
+        <p style="font-size:13px;font-weight:500;color:#085041;margin-bottom:9px;line-height:1.4;">Bugün gıybetten uzak durabildın mi?</p>
+        <div style="display:flex;gap:6px;">
+          <button onclick="checkinYes(this)" style="flex:1;height:33px;border-radius:9px;border:0.5px solid #9FE1CB;background:#1D9E75;font-size:12px;font-weight:500;cursor:pointer;color:white;">Evet ✓</button>
+          <button onclick="go('p-motivasyon')" style="flex:1;height:33px;border-radius:9px;border:0.5px solid #9FE1CB;background:white;font-size:12px;font-weight:500;cursor:pointer;color:#085041;">Olmadı</button>
+          <button onclick="dismissCI()" style="flex:1;height:33px;border-radius:9px;border:0.5px solid #9FE1CB;background:white;font-size:12px;font-weight:500;cursor:pointer;color:#085041;">Atla</button>
+        </div>
+      </div>
+
+      <div style="margin:0 18px 10px;background:#FAEEDA;border:0.5px solid #FAC775;border-radius:12px;padding:11px 13px;">
+        <p style="font-size:12px;color:#633806;line-height:1.55;">"Kim dilini tutarsa Allah onun ayıplarını örter."</p>
+        <p style="font-size:10px;color:#854F0B;font-weight:500;margin-top:3px;">Hz. Peygamber (s.a.v.) · Tirmizî</p>
+      </div>
+
+      <div class="bottom-nav">
+        <div class="nav-item active">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 10l7-7 7 7M5 8v8h4v-4h2v4h4V8" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span style="font-size:10px;color:#1D9E75;">Ana sayfa</span>
+          <div class="nav-dot"></div>
+        </div>
+        <div class="nav-item">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="#888" stroke-width="1.5"/><path d="M10 6v4l2.5 2" stroke="#888" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span class="nav-lbl">Halkam</span>
+        </div>
+        <div class="nav-item">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 6h12M4 10h12M4 14h8" stroke="#888" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span class="nav-lbl">Günlük</span>
+        </div>
+        <div class="nav-item">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3" stroke="#888" stroke-width="1.5"/><path d="M4 17c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="#888" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span class="nav-lbl">Profil</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- MOTİVASYON -->
+    <div class="page" id="p-motivasyon">
+      <div class="status"><span>09:41</span><span>●●●</span></div>
+      <div style="padding:18px 18px 14px;text-align:center;border-bottom:0.5px solid #EBEBEB;">
+        <div style="width:52px;height:52px;border-radius:16px;background:#FAEEDA;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#BA7517" stroke-width="1.5"/><path d="M12 8v4" stroke="#BA7517" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="15.5" r="1" fill="#BA7517"/></svg>
+        </div>
+        <p style="font-size:17px;font-weight:500;color:#1a1a1a;margin-bottom:5px;">Bugün olmadı — ve bu normal</p>
+        <p style="font-size:12px;color:#888;line-height:1.6;">Tevbe bir kapıdır, her an açılır. Yarın yeni bir başlangıç.</p>
+      </div>
+      <div style="margin:14px 18px;background:#FAEEDA;border:0.5px solid #FAC775;border-radius:14px;padding:14px;">
+        <p style="font-size:13px;color:#412402;text-align:right;direction:rtl;line-height:1.8;margin-bottom:7px;">لَا تَقْنَطُوا مِن رَّحْمَةِ اللَّهِ</p>
+        <p style="font-size:12px;color:#633806;line-height:1.6;font-style:italic;margin-bottom:5px;">"Allah'ın rahmetinden ümidinizi kesmeyin."</p>
+        <p style="font-size:11px;font-weight:500;color:#854F0B;">Zümer Suresi, 53. ayet</p>
+      </div>
+      <div style="padding:0 18px;display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;gap:8px;align-items:flex-start;">
+          <div style="width:6px;height:6px;border-radius:50%;background:#BA7517;flex-shrink:0;margin-top:5px;"></div>
+          <p style="font-size:13px;color:#444;line-height:1.55;">Bir gün kaçırmak zinciri sıfırlamaz. Devam eder.</p>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start;">
+          <div style="width:6px;height:6px;border-radius:50%;background:#BA7517;flex-shrink:0;margin-top:5px;"></div>
+          <p style="font-size:13px;color:#444;line-height:1.55;">İmam Gazali: "Düşen değil, düştüğü yerde kalan yenik sayılır."</p>
+        </div>
+      </div>
+      <div style="margin:14px 18px;background:#F5F5F3;border-radius:12px;padding:11px 13px;display:flex;justify-content:space-between;align-items:center;">
+        <p style="font-size:12px;color:#888;line-height:1.4;flex:1;">7 günlük seriniz korunuyor. Yarın devam edin.</p>
+        <p style="font-size:22px;font-weight:500;color:#1a1a1a;">7🔥</p>
+      </div>
+      <div style="padding:8px 18px 18px;display:flex;flex-direction:column;gap:7px;">
+        <button class="btn-full" onclick="go('p-ana')">Tamam, yarın devam →</button>
+        <button class="btn-sec">Halkama bildir</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="slide-label" id="slide-lbl">Splash · 1 / 5</div>
+
+<script>
+const pages = ['p-splash','p-test','p-result','p-hedef','p-ana','p-motivasyon'];
+const labels = ['Splash','Kalp Testi','Sonuçlar','Hedef Seçimi','Ana Ekran','Motivasyon'];
+let cur = 0;
+
+function go(id) {
+  document.getElementById(pages[cur]).classList.remove('active');
+  cur = pages.indexOf(id);
+  document.getElementById(id).classList.add('active');
+  document.getElementById('slide-lbl').textContent = labels[cur] + ' · ' + (cur+1) + ' / ' + pages.length;
+}
+
+const qs = [
+  { cat:'Kibir · Gurur', bg:'#E1F5EE', tc:'#085041', q:'Haklı olduğunu düşündüğünde geri adım atmak zor mu geliyor?', sub:'Tartışmalarda "ben haklıyım" hissini bırakmakta zorlanıyor musun?', opts:['Hayır, kolayca geri adım atabiliyorum','Bazen güç geliyor ama yapabiliyorum','Sık sık direniyor, pişman oluyorum','Çoğunlukla geri adım atmıyorum'] },
+  { cat:'Gıybet · Lisan', bg:'#EEEDFE', tc:'#3C3489', q:'Birinin yokluğunda onu eleştiriyor musun?', sub:'Sohbetler gıybete kayıyor mu?', opts:['Hayır, özen gösteriyorum','Bazen farkında olmadan oluyor','Sık sık olduğunu görüyorum','Çoğu sohbette böyle oluyor'] },
+  { cat:'Öfke · Sabır', bg:'#FAEEDA', tc:'#633806', q:'Beklenmedik bir engelle karşılaştığında ilk tepkin ne oluyor?', sub:'Trafik veya gecikme seni nasıl etkiliyor?', opts:['Sakin kalabiliyorum','Biraz geriliyor ama toparlıyorum','Öfke hissediyorum','Tepkim çevremdeki insanları etkiliyor'] },
+  { cat:'Şükür · Tevekkül', bg:'#EAF3DE', tc:'#27500A', q:'Günün sonunda sahip olduklarına gerçekten şükrediyor musun?', sub:'Varlıklarından mı yokluklarından mı daha çok bahsedersin?', opts:['Çoğunlukla şükür hissediyorum','Bazen şükrediyor bazen şikayet ediyorum','Çoğu zaman eksikliklerime odaklanıyorum','Şükretmek çok güç geliyor'] }
+];
+let qIdx = 0, ans = {};
+
+function renderQ() {
+  const q = qs[qIdx];
+  document.getElementById('cat-lbl').textContent = q.cat;
+  document.getElementById('step-lbl').textContent = (qIdx+1) + ' / ' + qs.length;
+  document.getElementById('prog').style.width = ((qIdx+1)/qs.length*100)+'%';
+  const badge = document.getElementById('q-badge');
+  badge.textContent = q.cat; badge.style.background = q.bg; badge.style.color = q.tc;
+  document.getElementById('q-text').textContent = q.q;
+  document.getElementById('q-sub').textContent = q.sub;
+  const wrap = document.getElementById('opts-wrap'); wrap.innerHTML = '';
+  q.opts.forEach((t,i) => {
+    const d = document.createElement('div');
+    d.className = 'opt' + (ans[qIdx]===i?' sel':'');
+    d.onclick = () => { ans[qIdx]=i; renderQ(); };
+    d.innerHTML = `<span class="opt-t">${t}</span><div class="opt-r">${ans[qIdx]===i?'<svg width="8" height="8" viewBox="0 0 8 8"><path d="M1 4l2 2 4-4" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>':''}</div>`;
+    wrap.appendChild(d);
+  });
+  document.getElementById('btn-next').disabled = ans[qIdx]===undefined;
+}
+function nextQ() { if(qIdx<qs.length-1){qIdx++;renderQ();}else{go('p-result');} }
+function prevQ() { if(qIdx>0){qIdx--;renderQ();}else{go('p-splash');} }
+renderQ();
+
+function selH(id) {
+  ['h1','h2','h3','h4'].forEach(h => {
+    const el = document.getElementById(h);
+    el.classList.remove('sel');
+    el.querySelector('.opt-r').innerHTML = '';
+  });
+  const el = document.getElementById(id);
+  el.classList.add('sel');
+  el.querySelector('.opt-r').innerHTML = '<svg width="8" height="8" viewBox="0 0 8 8"><path d="M1 4l2 2 4-4" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>';
+  document.getElementById('btn-hedef').disabled = false;
+}
+
+(function buildDots() {
+  const w = document.getElementById('ana-dots'); w.innerHTML = '';
+  for(let i=1;i<=40;i++){
+    const d = document.createElement('div');
+    d.style.cssText = 'width:10px;height:10px;border-radius:3px;';
+    if(i<8) d.style.background='#1D9E75';
+    else if(i===8) d.style.cssText+='background:#E1F5EE;border:1.5px solid #1D9E75;';
+    else d.style.background='#EBEBEB';
+    w.appendChild(d);
+  }
+})();
+
+function checkinYes(btn) { btn.textContent='Tamamlandı ✓'; btn.style.background='#085041'; }
+function dismissCI() { document.getElementById('checkin-card').style.display='none'; }
+</script>
+</body>
+</html>
